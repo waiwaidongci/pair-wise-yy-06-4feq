@@ -589,6 +589,272 @@ kbd {
   color: #f79009;
 }
 
+.favorite-card__tags {
+  display: flex;
+}
+
+.favorite-card__hint {
+  display: block;
+  font-size: 12px;
+}
+
+/* ---------- 结构版本切换 ---------- */
+
+.version-switcher {
+  margin: 0 12px 10px;
+  padding: 10px 11px;
+  border: 1px solid rgba(141, 162, 197, .22);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .045);
+  color: #cdd8ec;
+}
+
+.version-switcher__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #8da2c5;
+}
+
+.version-switcher__current {
+  margin-left: auto;
+  margin-inline-end: 0;
+}
+
+.version-switcher__options {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.version-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 9px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #aebbd1;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: .15s ease;
+}
+
+.version-option:hover {
+  background: rgba(255, 255, 255, .07);
+  color: #fff;
+}
+
+.version-option--active {
+  border-color: rgba(23, 105, 255, .65);
+  background: rgba(23, 105, 255, .22);
+  color: #fff;
+}
+
+.version-option__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #62a4ff;
+}
+
+.version-option__label {
+  flex: 1;
+}
+
+.version-option__check {
+  font-size: 9px;
+  color: #62a4ff;
+}
+
+.version-switcher__review {
+  background: rgba(255, 255, 255, .08);
+  border-color: rgba(255, 255, 255, .12);
+  color: #dbe6fb;
+}
+
+.version-switcher__review:hover {
+  background: rgba(255, 255, 255, .14) !important;
+  color: #fff !important;
+}
+
+.tab-version-tag {
+  margin-inline-start: 5px;
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.tab-status--pinned {
+  background: #fa8c16 !important;
+  box-shadow: 0 0 6px rgba(250, 140, 22, .7);
+}
+
+.version-banner {
+  margin: 0 12px 8px;
+}
+
+.favorite-version-hint {
+  margin-top: 10px;
+  color: #667085;
+  font-size: 12px;
+}
+
+/* ---------- 失效结果 ---------- */
+
+.result-pane--stale {
+  position: relative;
+}
+
+.result-cell--stale {
+  color: #98a2b3;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.result-stale-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 12px 8px;
+  padding: 9px 12px;
+  border: 1px solid #ffa39e;
+  border-radius: 7px;
+  background: #fff2f0;
+  color: #a8071a;
+  font-size: 12px;
+}
+
+.result-stale-banner span {
+  color: #cf1322;
+}
+
+/* ---------- 结构升级对照弹窗 ---------- */
+
+.migration-changelog {
+  margin: 10px 0;
+}
+
+.migration-filter {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.migration-card {
+  margin-bottom: 14px;
+  padding: 13px 14px;
+  border: 1px solid #e4e9f2;
+  border-radius: 10px;
+  background: #fbfcfe;
+}
+
+.migration-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.migration-card__title {
+  font-weight: 600;
+  color: #1d2944;
+}
+
+.migration-card__tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.migration-card__sqls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.migration-sql-block__label {
+  margin-bottom: 5px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.migration-sql {
+  max-height: 180px;
+  font-size: 11px;
+}
+
+.migration-sql--draft {
+  border-color: #91caff;
+  background: #0b1f3a;
+}
+
+.migration-pending {
+  align-self: start;
+}
+
+.migration-reasons,
+.migration-notes {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.migration-reasons {
+  color: #cf1322;
+}
+
+.migration-validate {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.migration-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 11px;
+}
+
+.migration-draft-editor {
+  width: 100%;
+  min-height: 150px;
+  padding: 9px 11px;
+  border: 1px solid #91caff;
+  border-radius: 7px;
+  background: #0b1f3a;
+  color: #bfe2ff;
+  font: 12px/1.6 "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  resize: vertical;
+}
+
+.migration-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.migration-footer__summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.migration-tip {
+  margin: 8px 2px 0;
+  font-size: 12px;
+}
+
 @media (max-width: 1100px) {
   .app-sider {
     width: 178px !important;

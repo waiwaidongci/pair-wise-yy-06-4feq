@@ -6,6 +6,9 @@ import {
 } from '@ant-design/icons';
 import { Layout, Tag, Tooltip } from 'antd';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { MigrationReviewModal } from './components/MigrationReviewModal';
+import { VersionSwitcher } from './components/VersionSwitcher';
+import { useWorkbenchStore } from './stores/workbenchStore';
 
 const NAV_ITEMS = [
   { path: '/workbench', label: 'SQL 工作台', icon: <CodeOutlined /> },
@@ -16,6 +19,7 @@ const NAV_ITEMS = [
 export function App() {
   const location = useLocation();
   const current = NAV_ITEMS.find((item) => location.pathname.startsWith(item.path));
+  const activeVersion = useWorkbenchStore((state) => state.activeVersion);
 
   return (
     <Layout className="app-shell">
@@ -41,16 +45,17 @@ export function App() {
             </NavLink>
           ))}
         </nav>
+        <VersionSwitcher />
         <div className="data-source-card">
           <span className="source-pulse" />
           <div>
             <strong>commerce_dw</strong>
-            <small>前端内存数据源</small>
+            <small>前端内存数据源 · {activeVersion}</small>
           </div>
           <Tag color="success">在线</Tag>
         </div>
         <div className="sider-footer">
-          <span>查询引擎 v1.4.2</span>
+          <span>查询引擎 v1.5.0</span>
           <Tooltip title="所有数据和查询均在浏览器内运行">
             <span>Local Only</span>
           </Tooltip>
@@ -65,6 +70,7 @@ export function App() {
           <div className="header-status">
             <span className="header-status__dot" />
             <span>模拟集群运行正常</span>
+            <Tag color="blue">结构版本 {activeVersion}</Tag>
             <Tag>18,000+ 行订单</Tag>
           </div>
         </Layout.Header>
@@ -72,6 +78,7 @@ export function App() {
           <Outlet />
         </Layout.Content>
       </Layout>
+      <MigrationReviewModal />
     </Layout>
   );
 }

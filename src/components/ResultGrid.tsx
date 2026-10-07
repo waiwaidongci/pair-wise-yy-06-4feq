@@ -1,5 +1,5 @@
 import { CopyOutlined, DownloadOutlined, TableOutlined } from '@ant-design/icons';
-import { App as AntdApp, Button, Empty, Spin, Table, Tag } from 'antd';
+import { App as AntdApp, Button, Empty, Spin, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { TableProps } from 'antd';
 import { useEffect, useMemo, useState, type ThHTMLAttributes } from 'react';
@@ -9,6 +9,8 @@ interface ResultGridProps {
   result: QueryResult | null;
   loading: boolean;
   error: string | null;
+  /** 结果依据的结构版本与当前数据源不一致时为 true：版本一变结果立即失效 */
+  stale?: boolean;
 }
 
 interface ResizableTitleProps extends ThHTMLAttributes<HTMLTableCellElement> {
@@ -46,11 +48,7 @@ function ResizableTitle({ width, onResize, children, ...restProps }: ResizableTi
   );
 }
 
-function normalizeRow(row: Record<string, SqlValue>): Record<string, SqlValue> {
-  return row;
-}
-
-export function ResultGrid({ result, loading, error }: ResultGridProps) {
+export function ResultGrid({ result, loading, error, stale = false }: ResultGridProps) {
   const { message } = AntdApp.useApp();
   const [widths, setWidths] = useState<Record<string, number>>({});
 
@@ -67,6 +65,10 @@ export function ResultGrid({ result, loading, error }: ResultGridProps) {
   }, [result]);
 
   const copyValue = async (value: SqlValue) => {
+    if (stale) {
+      void message.warning('结果已因结构版本变更失效，请在新版本重新执行后再复制');
+      return;
+    }
     await navigator.clipboard.writeText(value === null ? 'NULL' : String(value));
     void message.success('单元格内容已复制');
   };
@@ -74,7 +76,7 @@ export function ResultGrid({ result, loading, error }: ResultGridProps) {
   const dataSource = useMemo(
     () =>
       (result?.rows ?? []).map((row, index) => ({
-        ...normalizeRow(row),
+        ...row,
         __rowKey: index,
       })),
     [result],
@@ -98,8 +100,8 @@ export function ResultGrid({ result, loading, error }: ResultGridProps) {
       ellipsis: true,
       render: (value: SqlValue) => (
         <span
-          className={value === null ? 'null-value' : 'result-cell'}
-          title="右键复制单元格"
+          className={stale ? 'result-cell result-cell--stale' : value === null ? 'null-value' : 'result-cell'}
+          title={stale ? '结果已失效，无法复制' : '右键复制单元格'}
           onContextMenu={(event) => {
             event.preventDefault();
             void copyValue(value);
@@ -114,17 +116,21 @@ export function ResultGrid({ result, loading, error }: ResultGridProps) {
           setWidths((current) => ({ ...current, [column.name]: width })),
       }),
     }));
-  }, [result, widths]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result, widths, stale]);
 
   const exportCsv = () => {
-    if (!result) return;
+    if (!result || stale) {
+      void message.warning('结果已失效，不能导出；请在新版本重新执行查询');
+      return;
+    }
     const header = result.columns.map((column) => column.name).join(',');
     const rows = result.rows.map((row) =>
       result.columns
         .map((column) => `"${String(row[column.name] ?? '').replaceAll('"', '""')}"`)
         .join(','),
     );
-    const blob = new Blob([`\uFEFF${[header, ...rows].join('\n')}`], {
+    const blob = new Blob([`﻿${[header, ...rows].join('\n')}`], {
       type: 'text/csv;charset=utf-8',
     });
     const link = document.createElement('a');
@@ -156,7 +162,7 @@ export function ResultGrid({ result, loading, error }: ResultGridProps) {
   };
 
   return (
-    <section className="result-pane">
+    <section className={`result-pane${stale ? ' result-pane--stale' : ''}`}>
       <div className="result-heading">
         <div className="result-heading__title">
           <TableOutlined />
@@ -168,42 +174,54 @@ export function ResultGrid({ result, loading, error }: ResultGridProps) {
               </Tag>
               <span>匹配 {result.totalMatched.toLocaleString('zh-CN')} 行</span>
               <span>· {result.elapsedMs} ms</span>
+              <Tag color="default">依据 {result.schemaVersion}</Tag>
+              {stale && <Tag color="error">已失效</Tag>}
             </>
           )}
         </div>
         <div>
-          <Button
-            type="text"
-            size="small"
-            icon={<CopyOutlined />}
-            disabled={!result}
-            onClick={() => {
-              if (!result) return;
-              void navigator.clipboard
-                .writeText(
-                  [
-                    result.columns.map((column) => column.name).join('\t'),
-                    ...result.rows.map((row) =>
-                      result.columns.map((column) => row[column.name] ?? '').join('\t'),
-                    ),
-                  ].join('\n'),
-                )
-                .then(() => message.success('结果已复制为制表符文本'));
-            }}
-          >
-            复制
-          </Button>
-          <Button
-            type="text"
-            size="small"
-            icon={<DownloadOutlined />}
-            disabled={!result}
-            onClick={exportCsv}
-          >
-            CSV
-          </Button>
+          <Tooltip title={stale ? '结果已随结构版本变更失效，请重新执行' : '复制全部结果'}>
+            <Button
+              type="text"
+              size="small"
+              icon={<CopyOutlined />}
+              disabled={!result || stale}
+              onClick={() => {
+                if (!result || stale) return;
+                void navigator.clipboard
+                  .writeText(
+                    [
+                      result.columns.map((column) => column.name).join('\t'),
+                      ...result.rows.map((row) =>
+                        result.columns.map((column) => row[column.name] ?? '').join('\t'),
+                      ),
+                    ].join('\n'),
+                  )
+                  .then(() => message.success('结果已复制为制表符文本'));
+              }}
+            >
+              复制
+            </Button>
+          </Tooltip>
+          <Tooltip title={stale ? '失效结果不能导出' : '导出 CSV'}>
+            <Button
+              type="text"
+              size="small"
+              icon={<DownloadOutlined />}
+              disabled={!result || stale}
+              onClick={exportCsv}
+            >
+              CSV
+            </Button>
+          </Tooltip>
         </div>
       </div>
+      {stale && result && (
+        <div className="result-stale-banner">
+          <strong>结果已失效：数据源已切换结构版本（{result.schemaVersion} → 当前版本）。</strong>
+          <span>请按新版本改写并重新执行；失效结果不能复制或导出。</span>
+        </div>
+      )}
       <div className="result-body">
         {loading ? (
           <div className="result-state">

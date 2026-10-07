@@ -48,7 +48,7 @@ export function SchemaTree({ schema, loading, onUseTable }: SchemaTreeProps) {
       <div className="pane-heading">
         <div>
           <Typography.Text strong>数据资源</Typography.Text>
-          <Typography.Text type="secondary"> commerce_dw</Typography.Text>
+          <Typography.Text type="secondary"> commerce_dw · {schema?.version ?? ''}</Typography.Text>
         </div>
         <span className="online-dot" title="模拟数据源在线" />
       </div>
