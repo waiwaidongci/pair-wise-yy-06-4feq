@@ -1,6 +1,7 @@
 import { CloseOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Tabs } from 'antd';
+import { Button, Tabs, Tag } from 'antd';
 import type { QuerySession } from '../types/sql';
+import { CURRENT_SCHEMA_VERSION, LEGACY_SCHEMA_VERSION } from '../types/sql';
 
 interface QueryTabsProps {
   tabs: QuerySession[];
@@ -28,16 +29,29 @@ export function QueryTabs({
         }}
         type="editable-card"
         hideAdd
-        items={tabs.map((tab) => ({
-          key: tab.id,
-          label: (
-            <span className="tab-label">
-              <span className="tab-status" />
-              {tab.title}
-            </span>
-          ),
-          closable: true,
-        }))}
+        items={tabs.map((tab) => {
+          const legacy = tab.schemaVersion === LEGACY_SCHEMA_VERSION;
+          const rewritten = tab.migrationStatus === 'rewritten';
+          return {
+            key: tab.id,
+            label: (
+              <span className="tab-label">
+                <span className={`tab-status${legacy ? ' tab-status--legacy' : ''}`} />
+                {tab.title}
+                {legacy ? (
+                  <Tag color="orange" className="tab-version-tag">
+                    {LEGACY_SCHEMA_VERSION} 旧结构
+                  </Tag>
+                ) : rewritten ? (
+                  <Tag color="green" className="tab-version-tag">
+                    {CURRENT_SCHEMA_VERSION}
+                  </Tag>
+                ) : null}
+              </span>
+            ),
+            closable: true,
+          };
+        })}
       />
       <Button
         type="text"

@@ -2,6 +2,7 @@ import { ClockCircleOutlined, DeleteOutlined, PlayCircleOutlined, StarOutlined }
 import { App as AntdApp, Button, Empty, List, Popconfirm, Tag, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useWorkbenchStore } from '../stores/workbenchStore';
+import { CURRENT_SCHEMA_VERSION, LEGACY_SCHEMA_VERSION } from '../types/sql';
 
 export function HistoryPage() {
   const { message } = AntdApp.useApp();
@@ -27,7 +28,7 @@ export function HistoryPage() {
         <div>
           <Typography.Title level={2}>查询历史</Typography.Title>
           <Typography.Text type="secondary">
-            最近 100 次执行记录保存在本机浏览器，可随时恢复为新的查询标签。
+            最近 100 次执行记录保存在本机浏览器，留住原文与依据的结构版本，可随时恢复为新的查询标签。
           </Typography.Text>
         </div>
         {history.length > 0 && (
@@ -43,45 +44,57 @@ export function HistoryPage() {
           <List
             itemLayout="vertical"
             dataSource={history}
-            renderItem={(item) => (
-              <List.Item
-                key={item.id}
-                actions={[
-                  <Button
-                    key="open"
-                    type="link"
-                    icon={<PlayCircleOutlined />}
-                    onClick={() => openSql(item.sql)}
-                  >
-                    在编辑器中打开
-                  </Button>,
-                  <Button
-                    key="favorite"
-                    type="link"
-                    icon={<StarOutlined />}
-                    onClick={() => openSql(item.sql, true)}
-                  >
-                    收藏
-                  </Button>,
-                ]}
-              >
-                <List.Item.Meta
-                  title={
-                    <span>
-                      <ClockCircleOutlined /> {new Date(item.executedAt).toLocaleString('zh-CN')}
-                      <Tag color={item.success ? 'green' : 'red'} style={{ marginLeft: 10 }}>
-                        {item.success ? `${item.rowCount} 行` : '失败'}
-                      </Tag>
-                      {item.success && <span className="muted-text">{item.elapsedMs} ms</span>}
-                    </span>
-                  }
-                  description={
-                    <pre className="sql-preview">{item.sql}</pre>
-                  }
-                />
-                {item.error && <Typography.Text type="danger">{item.error}</Typography.Text>}
-              </List.Item>
-            )}
+            renderItem={(item) => {
+              const legacy = item.schemaVersion === LEGACY_SCHEMA_VERSION;
+              return (
+                <List.Item
+                  key={item.id}
+                  actions={[
+                    <Button
+                      key="open"
+                      type="link"
+                      icon={<PlayCircleOutlined />}
+                      onClick={() => openSql(item.sql)}
+                    >
+                      在编辑器中打开
+                    </Button>,
+                    <Button
+                      key="favorite"
+                      type="link"
+                      icon={<StarOutlined />}
+                      onClick={() => openSql(item.sql, true)}
+                    >
+                      收藏
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={
+                      <span>
+                        <ClockCircleOutlined /> {new Date(item.executedAt).toLocaleString('zh-CN')}
+                        <Tag color={item.success ? 'green' : 'red'} style={{ marginLeft: 10 }}>
+                          {item.success ? `${item.rowCount} 行` : '失败'}
+                        </Tag>
+                        <Tag color={legacy ? 'orange' : 'blue'}>
+                          {legacy ? `${LEGACY_SCHEMA_VERSION} 旧结构` : `${CURRENT_SCHEMA_VERSION} 当前结构`}
+                        </Tag>
+                        {item.success && <span className="muted-text">{item.elapsedMs} ms</span>}
+                      </span>
+                    }
+                    description={
+                      <pre className="sql-preview">{item.sql}</pre>
+                    }
+                  />
+                  {item.error && <Typography.Text type="danger">{item.error}</Typography.Text>}
+                  {legacy && (
+                    <Typography.Text type="warning" className="version-note">
+                      原文已按 {LEGACY_SCHEMA_VERSION} 结构保存，数据源已升级到 {CURRENT_SCHEMA_VERSION}
+                      ，在新标签中打开后请按需改写。
+                    </Typography.Text>
+                  )}
+                </List.Item>
+              );
+            }}
           />
         ) : (
           <Empty description="执行 SQL 后，这里会记录查询和耗时" />

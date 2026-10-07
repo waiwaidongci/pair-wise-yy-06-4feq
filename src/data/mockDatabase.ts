@@ -6,6 +6,7 @@ import type {
   SqlValue,
   TableSchema,
 } from '../types/sql';
+import { CURRENT_SCHEMA_VERSION, LEGACY_SCHEMA_VERSION } from '../types/sql';
 import { SqlQueryError } from '../utils/queryErrors';
 
 const CUSTOMER_PREFIXES = ['远海', '星图', '柏川', '新域', '启明', '屹辰', '和光', '云舟'];
@@ -15,13 +16,18 @@ const STATUSES = ['待审核', '进行中', '已发货', '已完成', '异常'];
 const PRODUCTS = ['企业云主机', '边缘计算节点', '数据治理平台', '智能客服', '可观测套件', '灾备服务'];
 const OWNERS = ['陈嘉', '林月', '周砺', '许宁', '韩舟', '顾清', '沈河', '陆遥'];
 
+/**
+ * 当前结构（v2）订单表：
+ * - customer_name 已移除（并入 customers 表，需关联取数）
+ * - amount 拆分为 amount_cny / amount_usd
+ */
 const orderColumns: ColumnSchema[] = [
   { name: 'order_no', type: 'string', description: '订单业务编号' },
-  { name: 'customer_name', type: 'string', description: '客户名称' },
   { name: 'region', type: 'string', description: '销售区域' },
   { name: 'product', type: 'string', description: '产品线' },
   { name: 'owner', type: 'string', description: '销售负责人' },
-  { name: 'amount', type: 'number', description: '含税合同金额' },
+  { name: 'amount_cny', type: 'number', description: '人民币合同金额（含税）' },
+  { name: 'amount_usd', type: 'number', description: '美元合同金额（含税）' },
   { name: 'quantity', type: 'number', description: '订购数量' },
   { name: 'status', type: 'string', description: '订单状态' },
   { name: 'created_at', type: 'date', description: '创建时间' },
@@ -29,11 +35,11 @@ const orderColumns: ColumnSchema[] = [
 
 const orders: Array<Record<string, SqlValue>> = Array.from({ length: 18000 }, (_, index) => ({
   order_no: `SO-${202600000 + index}`,
-  customer_name: `${CUSTOMER_PREFIXES[index % CUSTOMER_PREFIXES.length]}${CUSTOMER_SUFFIXES[(index * 3) % CUSTOMER_SUFFIXES.length]}`,
   region: REGIONS[(index * 5) % REGIONS.length],
   product: PRODUCTS[(index * 7) % PRODUCTS.length],
   owner: OWNERS[(index * 11) % OWNERS.length],
-  amount: Math.round((1200 + ((index * 7919) % 930000) / 3) * 100) / 100,
+  amount_cny: Math.round((1200 + ((index * 7919) % 930000) / 3) * 100) / 100,
+  amount_usd: Math.round((((index * 131) % 90000) / 7.2) * 100) / 100,
   quantity: 1 + ((index * 17) % 320),
   status: STATUSES[(index * 13) % STATUSES.length],
   created_at: `2026-${String((index % 12) + 1).padStart(2, '0')}-${String((index * 3) % 27 + 1).padStart(2, '0')} ${String(index % 24).padStart(2, '0')}:${String((index * 7) % 60).padStart(2, '0')}:00`,
@@ -43,6 +49,7 @@ const customers: Array<Record<string, SqlValue>> = Array.from({ length: 2600 }, 
   customer_id: `CUS-${String(index + 1).padStart(6, '0')}`,
   customer_name: `${CUSTOMER_PREFIXES[index % CUSTOMER_PREFIXES.length]}${CUSTOMER_SUFFIXES[(index * 3) % CUSTOMER_SUFFIXES.length]}`,
   region: REGIONS[(index * 5) % REGIONS.length],
+  region_code: `REG-${String((index % REGIONS.length) + 1).padStart(2, '0')}`,
   level: ['战略客户', '重点客户', '普通客户'][index % 3],
   credit_limit: 200000 + (index % 80) * 50000,
   owner: OWNERS[(index * 11) % OWNERS.length],
@@ -71,22 +78,24 @@ const employees: Array<Record<string, SqlValue>> = Array.from({ length: 860 }, (
 export const DATABASE: DatabaseSchema = {
   name: 'commerce_dw',
   label: 'commerce_dw · 企业经营数据仓库',
+  schemaVersion: CURRENT_SCHEMA_VERSION,
   tables: [
     {
       name: 'orders',
       label: 'orders · 销售订单明细',
-      description: '覆盖 2026 年订单、客户、产品、负责人和履约状态',
+      description: '覆盖 2026 年订单、客户、产品、负责人和履约状态（v2：金额拆分、客户名称已并入客户表）',
       columns: orderColumns,
       rows: orders,
     },
     {
       name: 'customers',
       label: 'customers · 客户主数据',
-      description: '客户等级、信用额度、归属区域和责任人',
+      description: '客户等级、信用额度、归属区域和责任人（v2：新增区域编码 region_code）',
       columns: [
         { name: 'customer_id', type: 'string' },
         { name: 'customer_name', type: 'string' },
         { name: 'region', type: 'string' },
+        { name: 'region_code', type: 'string', description: '区域编码（v2 新增）' },
         { name: 'level', type: 'string' },
         { name: 'credit_limit', type: 'number' },
         { name: 'owner', type: 'string' },
@@ -126,6 +135,80 @@ export const DATABASE: DatabaseSchema = {
   ],
 };
 
+/**
+ * 升级前结构（v1），仅用于新旧结构对照与旧查询分析，不参与执行。
+ * - orders 含 customer_name、amount
+ * - customers 无 region_code
+ */
+export const LEGACY_DATABASE: DatabaseSchema = {
+  name: 'commerce_dw',
+  label: 'commerce_dw · 企业经营数据仓库（v1 旧结构）',
+  schemaVersion: LEGACY_SCHEMA_VERSION,
+  tables: [
+    {
+      name: 'orders',
+      label: 'orders · 销售订单明细',
+      description: 'v1：含 customer_name、amount',
+      columns: [
+        { name: 'order_no', type: 'string' },
+        { name: 'customer_name', type: 'string', description: '客户名称（v1 冗余在订单表）' },
+        { name: 'region', type: 'string' },
+        { name: 'product', type: 'string' },
+        { name: 'owner', type: 'string' },
+        { name: 'amount', type: 'number', description: '含税合同金额（v1 单列）' },
+        { name: 'quantity', type: 'number' },
+        { name: 'status', type: 'string' },
+        { name: 'created_at', type: 'date' },
+      ],
+      rows: [],
+    },
+    {
+      name: 'customers',
+      label: 'customers · 客户主数据',
+      description: 'v1：无 region_code',
+      columns: [
+        { name: 'customer_id', type: 'string' },
+        { name: 'customer_name', type: 'string' },
+        { name: 'region', type: 'string' },
+        { name: 'level', type: 'string' },
+        { name: 'credit_limit', type: 'number' },
+        { name: 'owner', type: 'string' },
+        { name: 'active', type: 'string' },
+      ],
+      rows: [],
+    },
+    {
+      name: 'products',
+      label: 'products · 产品目录',
+      description: '产品编码、价格、库存和上下架状态',
+      columns: [
+        { name: 'product_code', type: 'string' },
+        { name: 'product_name', type: 'string' },
+        { name: 'category', type: 'string' },
+        { name: 'list_price', type: 'number' },
+        { name: 'stock', type: 'number' },
+        { name: 'online', type: 'string' },
+      ],
+      rows: [],
+    },
+    {
+      name: 'employees',
+      label: 'employees · 组织人员',
+      description: '销售及交付团队人员信息',
+      columns: [
+        { name: 'employee_id', type: 'string' },
+        { name: 'employee_name', type: 'string' },
+        { name: 'department', type: 'string' },
+        { name: 'region', type: 'string' },
+        { name: 'title', type: 'string' },
+        { name: 'joined_at', type: 'date' },
+        { name: 'performance', type: 'number' },
+      ],
+      rows: [],
+    },
+  ],
+};
+
 interface ParsedQuery {
   select: Array<{ source: string; alias: string }>;
   table: TableSchema;
@@ -148,8 +231,7 @@ export function getSchema(): DatabaseSchema {
 export async function executeMockQuery(
   sql: string,
   signal?: AbortSignal,
-): Promise<QueryResult> {
-  const startedAt = performance.now();
+): Promise<QueryResult> {  const startedAt = performance.now();
   const parsed = parseSelect(sql);
   if (!parsed) {
     throw new SqlQueryError(
@@ -191,6 +273,7 @@ export async function executeMockQuery(
     elapsedMs: Math.max(12, Math.round(performance.now() - startedAt)),
     sql,
     truncated: filtered.length > parsed.limit,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
   };
 }
 

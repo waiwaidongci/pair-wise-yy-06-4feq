@@ -4,17 +4,20 @@ import {
   FormatPainterOutlined,
   HistoryOutlined,
   StopOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Alert, App as AntdApp, Button, Input, Modal, Space, Tooltip } from 'antd';
+import { Alert, App as AntdApp, Button, Input, Modal, Space, Tag, Tooltip } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { QueryTabs } from '../components/QueryTabs';
 import { ResultGrid } from '../components/ResultGrid';
+import { SchemaMigrationModal } from '../components/SchemaMigrationModal';
 import { SchemaTree } from '../components/SchemaTree';
 import { SqlEditor } from '../components/SqlEditor';
 import { executeMockQuery, getSchema } from '../data/mockDatabase';
 import { useWorkbenchStore } from '../stores/workbenchStore';
 import type { QueryErrorDetail, QueryResult } from '../types/sql';
+import { CURRENT_SCHEMA_VERSION, LEGACY_SCHEMA_VERSION } from '../types/sql';
 import { formatSql } from '../utils/sqlFormatter';
 import { ERROR_MAPPINGS, toQueryErrorDetail } from '../utils/queryErrors';
 
@@ -28,14 +31,23 @@ export function WorkbenchPage() {
   const updateTab = useWorkbenchStore((state) => state.updateTab);
   const addHistory = useWorkbenchStore((state) => state.addHistory);
   const addFavorite = useWorkbenchStore((state) => state.addFavorite);
+  const migrationOpen = useWorkbenchStore((state) => state.migrationOpen);
+  const dismissMigration = useWorkbenchStore((state) => state.dismissMigration);
+  const reopenMigration = useWorkbenchStore((state) => state.reopenMigration);
+  const restoreTabOriginal = useWorkbenchStore((state) => state.restoreTabOriginal);
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
   const schemaQuery = useQuery({ queryKey: ['database-schema'], queryFn: getSchema });
   const abortRef = useRef<AbortController | null>(null);
   const [result, setResult] = useState<QueryResult | null>(null);
+  const [resultStale, setResultStale] = useState(false);
   const [error, setError] = useState<QueryErrorDetail | null>(null);
   const [favoriteOpen, setFavoriteOpen] = useState(false);
   const [favoriteName, setFavoriteName] = useState('');
   const [lastExecutedSql, setLastExecutedSql] = useState('');
+
+  const activeTabLegacy = activeTab?.schemaVersion === LEGACY_SCHEMA_VERSION;
+  const activeTabRewritten = activeTab?.migrationStatus === 'rewritten';
+  const pendingReason = activeTab?.migrationReason;
 
   const executeMutation = useMutation({
     mutationFn: ({ sql, signal }: { sql: string; signal: AbortSignal }) =>
@@ -62,6 +74,7 @@ export function WorkbenchPage() {
     abortRef.current = new AbortController();
     setError(null);
     setResult(null);
+    setResultStale(false);
     setLastExecutedSql(sql);
     try {
       const nextResult = await executeMutation.mutateAsync({
@@ -180,6 +193,67 @@ export function WorkbenchPage() {
               onClose={() => setError(null)}
             />
           )}
+          {activeTabLegacy && (
+            <Alert
+              showIcon
+              type="warning"
+              icon={<WarningOutlined />}
+              className="tab-legacy-banner"
+              message={
+                <span className="tab-legacy-banner__title">
+                  该查询依据旧结构 {LEGACY_SCHEMA_VERSION} 保存
+                  <Tag color="orange" style={{ marginLeft: 8 }}>
+                    {LEGACY_SCHEMA_VERSION} 旧结构
+                  </Tag>
+                </span>
+              }
+              description={
+                <div className="tab-legacy-banner__body">
+                  {pendingReason ? (
+                    <pre className="tab-legacy-banner__reason">{pendingReason}</pre>
+                  ) : (
+                    <span>尚未对照 {CURRENT_SCHEMA_VERSION} 结构检查，执行可能报字段不存在或悄悄少列。</span>
+                  )}
+                  <Space size={8} className="tab-legacy-banner__actions">
+                    <Button size="small" type="link" onClick={reopenMigration}>
+                      查看改写建议
+                    </Button>
+                    {activeTab.originalSql && (
+                      <Button
+                        size="small"
+                        type="link"
+                        onClick={() => restoreTabOriginal(activeTab.id)}
+                      >
+                        恢复原文
+                      </Button>
+                    )}
+                  </Space>
+                </div>
+              }
+            />
+          )}
+          {activeTabRewritten && (
+            <Alert
+              showIcon
+              type="success"
+              className="tab-legacy-banner"
+              message={
+                <span>
+                  已按 {CURRENT_SCHEMA_VERSION} 结构改写
+                  <Tag color="green" style={{ marginLeft: 8 }}>
+                    {CURRENT_SCHEMA_VERSION} 当前结构
+                  </Tag>
+                  <Button
+                    size="small"
+                    type="link"
+                    onClick={() => restoreTabOriginal(activeTab.id)}
+                  >
+                    恢复原文
+                  </Button>
+                </span>
+              }
+            />
+          )}
           <div className="editor-wrap">
             <SqlEditor
               key={activeTab.id}
@@ -192,8 +266,13 @@ export function WorkbenchPage() {
             />
           </div>
         </section>
-        <ResultGrid result={result} loading={running} error={error?.message ?? null} />
+        <ResultGrid result={result} loading={running} error={error?.message ?? null} stale={resultStale} />
       </main>
+      <SchemaMigrationModal
+        open={migrationOpen}
+        onClose={dismissMigration}
+        onConfirm={() => setResultStale(true)}
+      />
       <Modal
         open={favoriteOpen}
         title="收藏当前查询"

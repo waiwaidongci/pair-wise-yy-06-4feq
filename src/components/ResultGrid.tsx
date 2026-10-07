@@ -4,11 +4,14 @@ import type { ColumnsType } from 'antd/es/table';
 import type { TableProps } from 'antd';
 import { useEffect, useMemo, useState, type ThHTMLAttributes } from 'react';
 import type { QueryResult, SqlValue } from '../types/sql';
+import { CURRENT_SCHEMA_VERSION } from '../types/sql';
 
 interface ResultGridProps {
   result: QueryResult | null;
   loading: boolean;
   error: string | null;
+  /** 版本切换导致结果失效 */
+  stale?: boolean;
 }
 
 interface ResizableTitleProps extends ThHTMLAttributes<HTMLTableCellElement> {
@@ -50,7 +53,7 @@ function normalizeRow(row: Record<string, SqlValue>): Record<string, SqlValue> {
   return row;
 }
 
-export function ResultGrid({ result, loading, error }: ResultGridProps) {
+export function ResultGrid({ result, loading, error, stale = false }: ResultGridProps) {
   const { message } = AntdApp.useApp();
   const [widths, setWidths] = useState<Record<string, number>>({});
 
@@ -66,7 +69,10 @@ export function ResultGrid({ result, loading, error }: ResultGridProps) {
     );
   }, [result]);
 
+  const invalid = stale || (result ? result.schemaVersion !== CURRENT_SCHEMA_VERSION : false);
+
   const copyValue = async (value: SqlValue) => {
+    if (invalid) return;
     await navigator.clipboard.writeText(value === null ? 'NULL' : String(value));
     void message.success('单元格内容已复制');
   };
@@ -99,9 +105,10 @@ export function ResultGrid({ result, loading, error }: ResultGridProps) {
       render: (value: SqlValue) => (
         <span
           className={value === null ? 'null-value' : 'result-cell'}
-          title="右键复制单元格"
+          title={invalid ? '结果已失效，不能复制' : '右键复制单元格'}
           onContextMenu={(event) => {
             event.preventDefault();
+            if (invalid) return;
             void copyValue(value);
           }}
         >
@@ -117,7 +124,7 @@ export function ResultGrid({ result, loading, error }: ResultGridProps) {
   }, [result, widths]);
 
   const exportCsv = () => {
-    if (!result) return;
+    if (!result || invalid) return;
     const header = result.columns.map((column) => column.name).join(',');
     const rows = result.rows.map((row) =>
       result.columns
@@ -176,9 +183,9 @@ export function ResultGrid({ result, loading, error }: ResultGridProps) {
             type="text"
             size="small"
             icon={<CopyOutlined />}
-            disabled={!result}
+            disabled={!result || invalid}
             onClick={() => {
-              if (!result) return;
+              if (!result || invalid) return;
               void navigator.clipboard
                 .writeText(
                   [
@@ -197,14 +204,23 @@ export function ResultGrid({ result, loading, error }: ResultGridProps) {
             type="text"
             size="small"
             icon={<DownloadOutlined />}
-            disabled={!result}
+            disabled={!result || invalid}
             onClick={exportCsv}
           >
             CSV
           </Button>
         </div>
       </div>
-      <div className="result-body">
+      {invalid && result && (
+        <div className="result-invalid-banner">
+          <strong>结果已失效</strong>
+          <span>
+            该结果基于旧结构 {result.schemaVersion} 产出，数据源已升级到 {CURRENT_SCHEMA_VERSION}
+            ，列结构已变化，不能再复制或导出。请在确认改写后重新执行查询。
+          </span>
+        </div>
+      )}
+      <div className={`result-body${invalid ? ' result-body--invalid' : ''}`}>
         {loading ? (
           <div className="result-state">
             <Spin size="large" />

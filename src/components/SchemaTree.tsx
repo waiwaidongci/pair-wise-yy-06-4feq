@@ -1,7 +1,8 @@
 import { DatabaseOutlined, FieldBinaryOutlined, SearchOutlined, TableOutlined } from '@ant-design/icons';
-import { Empty, Input, Spin, Tree, Typography, type TreeDataNode } from 'antd';
+import { Empty, Input, Spin, Tag, Tree, Typography, type TreeDataNode } from 'antd';
 import { useMemo, useState } from 'react';
 import type { DatabaseSchema } from '../types/sql';
+import { CURRENT_SCHEMA_VERSION } from '../types/sql';
 
 interface SchemaTreeProps {
   schema?: DatabaseSchema;
@@ -50,7 +51,9 @@ export function SchemaTree({ schema, loading, onUseTable }: SchemaTreeProps) {
           <Typography.Text strong>数据资源</Typography.Text>
           <Typography.Text type="secondary"> commerce_dw</Typography.Text>
         </div>
-        <span className="online-dot" title="模拟数据源在线" />
+        <Tag color="blue" className="schema-version-tag">
+          {schema?.schemaVersion ?? CURRENT_SCHEMA_VERSION}
+        </Tag>
       </div>
       <Input
         allowClear

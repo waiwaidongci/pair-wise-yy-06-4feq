@@ -49,6 +49,10 @@ export function App() {
           </div>
           <Tag color="success">在线</Tag>
         </div>
+        <div className="sider-version">
+          <span>结构版本</span>
+          <Tag color="blue">v2</Tag>
+        </div>
         <div className="sider-footer">
           <span>查询引擎 v1.4.2</span>
           <Tooltip title="所有数据和查询均在浏览器内运行">

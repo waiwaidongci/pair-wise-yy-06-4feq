@@ -589,6 +589,193 @@ kbd {
   color: #f79009;
 }
 
+/* ---- 结构版本 ---- */
+.sider-version {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 12px 10px;
+  padding: 8px 13px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .035);
+  color: #8495b2;
+  font-size: 11px;
+}
+
+.schema-version-tag {
+  margin-inline-end: 0;
+}
+
+.tab-version-tag {
+  margin-inline-end: 0;
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.tab-status--legacy {
+  background: #f79009;
+}
+
+/* ---- 旧结构待处理横幅 ---- */
+.tab-legacy-banner {
+  margin: 0;
+  border-radius: 0;
+  border-inline: none;
+}
+
+.tab-legacy-banner__title {
+  font-weight: 600;
+}
+
+.tab-legacy-banner__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tab-legacy-banner__reason {
+  margin: 0;
+  padding: 6px 9px;
+  border: 1px solid #ffe2c2;
+  border-radius: 6px;
+  background: #fff7ed;
+  color: #9a3412;
+  font: 11px/1.6 "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  white-space: pre-wrap;
+}
+
+.tab-legacy-banner__actions {
+  margin-top: 2px;
+}
+
+/* ---- 结果失效 ---- */
+.result-invalid-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b42318;
+  font-size: 12px;
+}
+
+.result-invalid-banner strong {
+  color: #b42318;
+}
+
+.result-body--invalid {
+  opacity: .55;
+  pointer-events: none;
+}
+
+/* ---- 升级向导 ---- */
+.migration-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #e5e9f0;
+  border-radius: 8px;
+  background: #f7f9fc;
+}
+
+.migration-diff__item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.migration-diff__detail {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.migration-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 38vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.migration-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid #dbe2ec;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.migration-tab__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.migration-tab__sql {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.migration-tab__label {
+  font-size: 11px;
+}
+
+.migration-tab__code {
+  margin: 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border: 1px solid #dfe5ee;
+  border-radius: 6px;
+  background: #101a31;
+  color: #bfe2ff;
+  font: 11px/1.6 "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  white-space: pre-wrap;
+}
+
+.migration-tab__code--draft {
+  border-color: #b6d4fe;
+  background: #0f2240;
+  color: #a5d6ff;
+}
+
+.migration-tab__blockers {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.migration-tab__blocker {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid #ffe2c2;
+  border-radius: 6px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.migration-note {
+  margin: 12px 0 0 !important;
+  font-size: 11px;
+}
+
+.version-note {
+  display: block;
+  margin: 6px 0;
+  font-size: 11px;
+}
+
 @media (max-width: 1100px) {
   .app-sider {
     width: 178px !important;
